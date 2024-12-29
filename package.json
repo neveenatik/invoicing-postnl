@@ -1,0 +1,19 @@
+{
+  "name": "invoicing-postnl",
+  "version": "0.0.0",
+  "description": "read daily report and accumulate billible working hours",
+  "main": "invoicing.js",
+  "type": "module",
+  "author": "nevine.atike@gmail.com",
+  "license": "MIT",
+  "scripts": {
+    "start": "node invoicing.js"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
+    "libreoffice-convert": "^1.6.0",
+    "pdfjs-dist": "^4.9.155",
+    "xlsx-template": "^1.4.4"
+  }
+}
