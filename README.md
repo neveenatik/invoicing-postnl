@@ -59,7 +59,7 @@ If an error occurs during execution, it will be logged to the console.
 
 ## Contributors
 
-- [Your Name]
+- [neveenatik]
 
 ## License
 
