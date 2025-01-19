@@ -5,13 +5,19 @@ import libre from 'libreoffice-convert';
 import path from 'path';
 import { parse, getWeek } from 'date-fns';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { STOPS_PER_HOUR, START_INVOICE_NR } from './constants.js';
+import { STOPS_PER_HOUR, START_INVOICE_NR, ADMINISTRATIONAL_HOURS } from './constants.js';
 import { fileURLToPath } from 'url';
 
 // Resolve the directory name of the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Parses a PDF file to extract relevant data.
+ * @param {string} filePath - The path to the PDF file.
+ * @returns {Promise<Object>} - The extracted data including date, total stops, week of year, and converted hours.
+ * @throws {Error} - Throws an error if required data is not found in the PDF.
+ */
 export async function parsePDF(filePath) {
     const dataBuffer = fs.readFileSync(filePath);
     const dataArray = new Uint8Array(dataBuffer); // Convert Buffer to Uint8Array
@@ -40,6 +46,11 @@ export async function parsePDF(filePath) {
     }
 }
 
+/**
+ * Extracts text content from a PDF document.
+ * @param {Object} pdfDoc - The PDF document object.
+ * @returns {Promise<string>} - The extracted text content.
+ */
 async function extractTextFromPDF(pdfDoc) {
     let text = '';
     const numPages = pdfDoc.numPages;
@@ -52,6 +63,11 @@ async function extractTextFromPDF(pdfDoc) {
     return text;
 }
 
+/**
+ * Gets the column letters from the header row of an Excel worksheet.
+ * @param {Object} worksheet - The Excel worksheet object.
+ * @returns {Object} - An object mapping column names to their respective letters.
+ */
 export function getColumnLetters(worksheet) {
     const headerRow = worksheet.getRow(1); // Assuming the first row contains headers
     const columnLetters = {};
@@ -63,15 +79,36 @@ export function getColumnLetters(worksheet) {
     return columnLetters;
 }
 
-export function getNextInvoiceNumber(lastInvoiceNumber) {
+/**
+ * Gets the next invoice number based on the last invoice number.
+ * @param {string} lastInvoiceNumber - The last invoice number.
+ * @returns {number} - The next invoice number.
+ */
+export function getNextNumber(lastInvoiceNumber) {
     const match = lastInvoiceNumber.match(/INVOICE #(\d+)/);
     if (match) {
         const number = parseInt(match[1], 10) + 1;
-        return `INVOICE #${String(number).padStart(3, '0')}`;
+        return number;
     }
-    return 'INVOICE #001';
+    return 1;
 }
 
+/**
+ * Generates the next invoice number string.
+ * @param {string} lastInvoiceNumber - The last invoice number.
+ * @returns {string} - The next invoice number string.
+ */
+export function getNextInvoiceNumber(lastInvoiceNumber) {
+    const number = getNextNumber(lastInvoiceNumber)
+    return `INVOICE #${String(number).padStart(3, '0')}`
+}
+
+/**
+ * Updates an Excel file with new data and returns uninvoiced data and the next invoice number.
+ * @param {string} filePath - The path to the Excel file.
+ * @param {Array<Object>} data - The data to update the Excel file with.
+ * @returns {Promise<Object>} - An object containing uninvoiced data and the next invoice number.
+ */
 export async function updateExcel(filePath, data) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
@@ -135,6 +172,13 @@ export async function updateExcel(filePath, data) {
     return { uninvoicedData, nextInvoiceNumber };
 }
 
+/**
+ * Converts an Excel file to a PDF file.
+ * @param {string} inputPath - The path to the input Excel file.
+ * @param {string} outputPath - The path to the output PDF file.
+ * @returns {Promise<string>} - A promise that resolves with a success message.
+ * @throws {Error} - Throws an error if the conversion fails.
+ */
 export async function convertExcelToPdf(inputPath, outputPath) {
     return new Promise((resolve, reject) => {
         const file = fs.readFileSync(inputPath);
@@ -149,23 +193,38 @@ export async function convertExcelToPdf(inputPath, outputPath) {
     });
 }
 
+/**
+ * Creates a PDF invoice based on an Excel template.
+ * @param {string} templatePath - The path to the Excel template file.
+ * @param {string} outputPath - The path to the output PDF file.
+ * @param {Object} data - The data to populate the template with.
+ * @param {string} invoiceNumber - The invoice number to use in the template.
+ * @returns {Promise<void>} - A promise that resolves when the PDF is created.
+ * @throws {Error} - Throws an error if the PDF creation or conversion fails.
+ */
 export async function createPDF(templatePath, outputPath, data, invoiceNumber) {
     const templateData = fs.readFileSync(templatePath);
     const template = new XlsxTemplate(templateData);
     const sheetNumber = 1;
+
     // Combine all data into a format suitable for the template
     const weeks = Object.keys(data);
     const records = [];
-    weeks.forEach(weekOfYear => {
+    weeks.forEach((weekOfYear, index) => {
         const weekData = data[weekOfYear];
         const totalHours = weekData.reduce((sumHours, { convertedHours }) => sumHours + parseFloat(convertedHours), 0);
+
         records.push({
-            weekOfYear, hours: totalHours // Round hours to two decimals
+            weekOfYear,
+            hours: index === 0 ? totalHours - ADMINISTRATIONAL_HOURS : totalHours,
+            price: STOPS_PER_HOUR,
         });
     });
+
+    // Substitute the table and the single cell placeholders in the template
     template.substitute(sheetNumber, {
         invoiceNumber,
-        records
+        records,
     });
 
     // Generate the XLSX from the template
@@ -189,6 +248,12 @@ export async function createPDF(templatePath, outputPath, data, invoiceNumber) {
     fs.unlinkSync(tempExcelPath);
 }
 
+/**
+ * Marks data entries as invoiced in an Excel file.
+ * @param {string} filePath - The path to the Excel file.
+ * @param {Object} data - The data entries to mark as invoiced.
+ * @returns {Promise<void>} - A promise that resolves when the entries are marked.
+ */
 export async function markAsInvoiced(filePath, data) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
@@ -208,7 +273,27 @@ export async function markAsInvoiced(filePath, data) {
     await workbook.xlsx.writeFile(filePath);
 }
 
+/**
+ * Recursively get all PDF files from a directory and its subdirectories
+ * @param {string} directory - The directory to search
+ * @returns {string[]} - Array of PDF file paths
+ */
 export function getPdfFiles(directory) {
+    let results = [];
     const files = fs.readdirSync(directory);
-    return files.filter(file => path.extname(file).toLowerCase() === '.pdf').map(file => path.join(directory, file));
+
+    files.forEach(file => {
+        const filePath = path.join(directory, file);
+        const stat = fs.statSync(filePath);
+
+        if (stat && stat.isDirectory()) {
+            // Recurse into subdirectory
+            results = results.concat(getPdfFiles(filePath));
+        } else if (path.extname(file).toLowerCase() === '.pdf') {
+            // Add PDF file to results
+            results.push(filePath);
+        }
+    });
+
+    return results;
 }
