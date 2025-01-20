@@ -7,15 +7,29 @@ This script processes PDF files, updates data in an Excel file, generates invoic
 Ensure you have the following installed:
 - Node.js
 - npm (Node Package Manager)
+- LibreOffice (required for `libreoffice-convert` library)
 
 ## Installation
 
 1. Clone the repository or download the script to your local machine.
-2. Navigate to the directory containing the script in your terminal.
+2. Navigate to the directory containing the script in your terminal or Command Prompt for windows users.
+2. Open Command Prompt (for Windows users) or terminal (for MacOS users) and navigate to the directory containing the script.
 3. Install the necessary dependencies by running:
-   ```bash
+   ```cmd
    npm install
    ```
+
+### Installing LibreOffice
+
+LibreOffice is required for converting Excel files to PDF. You can download and install LibreOffice from [here](https://www.libreoffice.org/download/download/).
+
+After installing LibreOffice, ensure that the `soffice` executable is in your system's PATH. You can verify this by running the following command in Command Prompt:
+
+```cmd
+soffice --version
+```
+
+If the command returns the LibreOffice version, it means LibreOffice is correctly installed and in your PATH.
 
 ## Usage
 
@@ -34,8 +48,13 @@ node invoicing.js <excelPath> <templatePath> <outputDirectory> <pdfDirectory>
 
 ### Example
 
+MacOS:
 ```bash
 node invoicing.js path/to/your/excel.xlsx path/to/your/template.xlsx path/to/output/directory path/to/pdf/directory
+
+Windows:
+```cmd
+node invoicing.js C:\path\to\your\excel.xlsx C:\path\to\your\template.xlsx C:\path\to\output\directory C:\path\to\pdf\directory
 ```
 
 ### Description
