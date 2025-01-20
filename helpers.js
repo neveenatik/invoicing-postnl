@@ -103,9 +103,11 @@ export function getColumnLetters(worksheet) {
  * @returns {Array|null} - An array containing the full match and the captured group, or null if no match is found.
  */
 export function getNumberFromInvoice(invoiceNumber) {
-  return invoiceNumber.match(
-    new RegExp(INVOICE_NUMBER_FORMAT.replace("{number}", "(d+)"))
+  const matchRegex = new RegExp(
+    INVOICE_NUMBER_FORMAT.replace("{number}", "(\\d+)")
   );
+  const number = invoiceNumber.match(matchRegex);
+  return number;
 }
 
 /**
@@ -162,12 +164,17 @@ export async function updateExcel(filePath, data) {
     if (rowNumber > 1) {
       const invoiceNrCell = row.getCell(columnLetters["invoice.nr"]);
       if (invoiceNrCell.value) {
+        console.log(
+          "Found a previous invoice in reports file",
+          invoiceNrCell.value
+        );
         lastInvoiceNr = invoiceNrCell.value;
       }
     }
   });
 
   const nextInvoiceNumber = getNextInvoiceNumber(lastInvoiceNr);
+  console.log("Next invoice number", nextInvoiceNumber);
 
   data.forEach(({ date, totalStops, weekOfYear, convertedHours }) => {
     if (!existingDates.has(date)) {
