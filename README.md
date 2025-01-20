@@ -51,6 +51,7 @@ node invoicing.js <excelPath> <templatePath> <outputDirectory> <pdfDirectory>
 MacOS:
 ```bash
 node invoicing.js path/to/your/excel.xlsx path/to/your/template.xlsx path/to/output/directory path/to/pdf/directory
+```
 
 Windows:
 ```cmd
@@ -71,6 +72,12 @@ node invoicing.js C:\path\to\your\excel.xlsx C:\path\to\your\template.xlsx C:\pa
 - The script will log the paths being used and the progress of each step.
 - If there are new entries to process, a new invoice PDF will be generated and saved in the specified output directory.
 - If there are no new entries to process, it will log "No new entries to process. No invoice generated."
+
+### Template Example
+The repository includes a template example file (MTNA_invoice.xlsx) that demonstrates the values that can be used in the provided template. This file serves as a guide for how to structure your template to work with the script.
+
+### Report Excel File
+The repository also includes a report Excel file (report.xlsx) that provides an example of what data would be added to the report file. This file shows the expected format and structure of the data entries.
 
 ### Error Handling
 
