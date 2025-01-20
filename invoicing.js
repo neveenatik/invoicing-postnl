@@ -1,4 +1,5 @@
 import { parsePDF, updateExcel, createPDF, markAsInvoiced, getPdfFiles } from './helpers.js';
+import { INVOICE_FILE_NAME_FORMAT } from './constants.js'
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -31,7 +32,7 @@ const __dirname = path.dirname(__filename);
         const { uninvoicedData, nextInvoiceNumber } = await updateExcel(excelPath, allData);
 
         if (Object.keys(uninvoicedData).length > 0) {
-            const outputFilePath = path.join(outputDirectory, `invoice_${nextInvoiceNumber.replace(' ', '')}.pdf`);
+            const outputFilePath = path.join(outputDirectory, `${INVOICE_FILE_NAME_FORMAT.replace('{number}', nextInvoiceNumber)}.pdf`);
             await createPDF(templatePath, outputFilePath, uninvoicedData, nextInvoiceNumber);
             await markAsInvoiced(excelPath, uninvoicedData);
             console.log('Process completed successfully!');
